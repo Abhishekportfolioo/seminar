@@ -1,0 +1,3479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fabric Defects: Animated Presentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            cursor: show;
+        }
+
+        .presentation-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            perspective: 1000px;
+        }
+
+        .slide {
+            width: 100%;
+            height: 100%;
+            padding: 40px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: white;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            border-radius: 10px;
+            transform: translateX(100%) rotateY(45deg);
+            opacity: 0;
+            transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            overflow-y: auto;
+        }
+
+        .slide.active {
+            transform: translateX(0) rotateY(0deg);
+            opacity: 1;
+            z-index: 10;
+        }
+
+        .slide.prev {
+            transform: translateX(-100%) rotateY(-45deg);
+            opacity: 0;
+            z-index: 1;
+        }
+
+        .slide.next {
+            transform: translateX(100%) rotateY(45deg);
+            opacity: 0;
+            z-index: 1;
+        }
+
+        .title-slide {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .title-slide h1 {
+            font-size: 5em;
+            margin-bottom: 30px;
+            font-weight: 700;
+            animation: titleSlideIn 1.5s ease-out;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .title-slide p {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            opacity: 0;
+            animation: subtitleSlideIn 1.5s ease-out 0.5s forwards;
+        }
+
+        .title-slide .stats {
+            font-size: 1.2em;
+            margin-top: 30px;
+            opacity: 0;
+            animation: statsSlideIn 1.5s ease-out 1s forwards;
+        }
+
+        @keyframes titleSlideIn {
+            0% {
+                transform: translateY(-100px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes subtitleSlideIn {
+            0% {
+                transform: translateX(-50px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateX(0);
+                opacity: 0.9;
+            }
+        }
+
+        @keyframes statsSlideIn {
+            0% {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0);
+                opacity: 0.8;
+            }
+        }
+
+        .defect-slide {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+            opacity: 0;
+            animation: slideContentIn 1s ease-out 0.3s forwards;
+        }
+
+        @keyframes slideContentIn {
+            0% {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .defect-header {
+            text-align: center;
+            padding: 25px;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(231, 76, 60, 0.4);
+            position: relative;
+            overflow: hidden;
+            animation: headerPulse 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes headerPulse {
+            0% {
+                box-shadow: 0 10px 30px rgba(231, 76, 60, 0.4);
+            }
+            100% {
+                box-shadow: 0 15px 40px rgba(231, 76, 60, 0.6);
+            }
+        }
+
+        .defect-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            transform: rotate(45deg);
+            animation: shine 3s linear infinite;
+        }
+
+        @keyframes shine {
+            0% {
+                transform: translateX(-100%) translateY(-100%) rotate(45deg);
+            }
+            100% {
+                transform: translateX(100%) translateY(100%) rotate(45deg);
+            }
+        }
+
+        .defect-header h1 {
+            font-size: 3.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+            position: relative;
+            z-index: 1;
+        }
+
+        .defect-header .defect-type {
+            font-size: 1.2em;
+            opacity: 0.9;
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .content-card {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border-top: 6px solid;
+            position: relative;
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .slide.active .content-card:nth-child(1) {
+            animation: cardSlideIn 0.6s ease-out 0.4s forwards;
+        }
+
+        .slide.active .content-card:nth-child(2) {
+            animation: cardSlideIn 0.6s ease-out 0.6s forwards;
+        }
+
+        .slide.active .content-card:nth-child(3) {
+            animation: cardSlideIn 0.6s ease-out 0.8s forwards;
+        }
+
+        @keyframes cardSlideIn {
+            0% {
+                transform: translateY(20px) scale(0.95);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .content-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+        }
+
+        .description-card {
+            border-top-color: #3498db;
+        }
+
+        .causes-card {
+            border-top-color: #e67e22;
+        }
+
+        .remedies-card {
+            border-top-color: #27ae60;
+        }
+
+        .content-card h3 {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            font-weight: 600;
+            position: relative;
+        }
+
+        .description-card h3 {
+            color: #3498db;
+        }
+
+        .causes-card h3 {
+            color: #e67e22;
+        }
+
+        .remedies-card h3 {
+            color: #27ae60;
+        }
+
+        .content-card h3::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 3px;
+            background: currentColor;
+            transition: width 0.5s ease;
+        }
+
+        .slide.active .content-card h3::after {
+            width: 100%;
+        }
+
+        .content-card p {
+            font-size: 1.15em;
+            line-height: 1.7;
+            color: #2c3e50;
+            margin-bottom: 18px;
+        }
+
+        .content-card ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .content-card li {
+            font-size: 1.1em;
+            line-height: 1.7;
+            color: #34495e;
+            margin-bottom: 12px;
+            padding-left: 25px;
+            position: relative;
+            opacity: 0;
+            transform: translateX(-10px);
+        }
+
+        .slide.active .content-card li {
+            animation: listItemSlideIn 0.4s ease-out forwards;
+        }
+
+        .slide.active .content-card li:nth-child(1) { animation-delay: 1s; }
+        .slide.active .content-card li:nth-child(2) { animation-delay: 1.1s; }
+        .slide.active .content-card li:nth-child(3) { animation-delay: 1.2s; }
+        .slide.active .content-card li:nth-child(4) { animation-delay: 1.3s; }
+        .slide.active .content-card li:nth-child(5) { animation-delay: 1.4s; }
+        .slide.active .content-card li:nth-child(6) { animation-delay: 1.5s; }
+
+        @keyframes listItemSlideIn {
+            0% {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .content-card li:before {
+            content: "●";
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+            font-size: 1.4em;
+            animation: bulletPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes bulletPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .causes-card li:before {
+            color: #e67e22;
+        }
+
+        .remedies-card li:before {
+            color: #27ae60;
+        }
+
+        .description-card li:before {
+            color: #3498db;
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 25px;
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            background: rgba(255,255,255,0.95);
+            border: none;
+            padding: 15px 30px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 1.2em;
+            font-weight: 600;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .nav-btn:hover::before {
+            left: 100%;
+        }
+
+        .nav-btn:hover {
+            background: white;
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.3);
+        }
+
+        .nav-btn:active {
+            transform: translateY(-1px) scale(0.98);
+        }
+
+        .slide-counter {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            background: rgba(255,255,255,0.95);
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            color: #2c3e50;
+            z-index: 1000;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            animation: counterFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes counterFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .search-container {
+            position: fixed;
+            top: 30px;
+            left: 30px;
+            z-index: 1000;
+        }
+
+        .search-input {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 25px;
+            background: rgba(255,255,255,0.95);
+            font-size: 1.1em;
+            width: 300px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            transform: scale(1.05);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+        }
+
+        .highlight {
+            background: linear-gradient(45deg, #f39c12, #f1c40f);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+            animation: highlightGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes highlightGlow {
+            0% { box-shadow: 0 0 5px rgba(243, 156, 18, 0.5); }
+            100% { box-shadow: 0 0 15px rgba(243, 156, 18, 0.8); }
+        }
+
+        .severity-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 25px;
+            color: white;
+            font-weight: 600;
+            font-size: 1em;
+            z-index: 2;
+            animation: severityPulse 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes severityPulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+
+        .critical { 
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            box-shadow: 0 0 20px rgba(231, 76, 60, 0.5);
+        }
+        
+        .major { 
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            box-shadow: 0 0 20px rgba(243, 156, 18, 0.5);
+        }
+        
+        .minor { 
+            background: linear-gradient(45deg, #f1c40f, #f39c12);
+            color: #2c3e50;
+            box-shadow: 0 0 20px rgba(241, 196, 15, 0.5);
+        }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            z-index: 1001;
+            transition: width 0.8s ease;
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+        }
+
+        .fullscreen-toggle {
+            position: fixed;
+            top: 30px;
+            right: 200px;
+            background: rgba(255,255,255,0.95);
+            border: none;
+            padding: 10px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1.1em;
+            z-index: 1000;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .fullscreen-toggle:hover {
+            transform: scale(1.1);
+            background: white;
+        }
+
+        /* Presentation mode styles */
+        .presentation-mode {
+            cursor: none;
+        }
+
+        .presentation-mode .navigation,
+        .presentation-mode .search-container,
+        .presentation-mode .fullscreen-toggle {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .presentation-mode:hover .navigation,
+        .presentation-mode:hover .search-container,
+        .presentation-mode:hover .fullscreen-toggle {
+            opacity: 1;
+        }
+
+        /* Auto-advance indicator */
+        .auto-advance-indicator {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .auto-advance-indicator.active {
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .defect-header h1 {
+                font-size: 2.5em;
+            }
+            
+            .search-input {
+                width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+    
+    <div class="presentation-container" id="presentationContainer">
+        <div class="slide-counter">
+            <span id="currentSlide">1</span> / <span id="totalSlides">52</span>
+        </div>
+
+        <div class="search-container">
+            <input type="text" class="search-input" placeholder="🔍 Search defects..." id="searchInput">
+        </div>
+
+        <button class="fullscreen-toggle" onclick="toggleFullscreen()" title="Toggle Fullscreen">
+            ⛶
+        </button>
+
+        <div class="auto-advance-indicator" id="autoAdvanceIndicator">
+            Auto-advance in <span id="countdown">10</span>s
+        </div>
+
+        <!-- Title Slide -->
+         <div class="slide active title-slide">
+            <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #1a1a2e;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .slide-container {
+            width: 1280px;
+            height: 720px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+        }
+        
+        /* Animated Background Particles */
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float-particles 20s infinite ease-in-out;
+        }
+        
+        .particle:nth-child(1) {
+            width: 80px;
+            height: 80px;
+            top: 10%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+        
+        .particle:nth-child(2) {
+            width: 60px;
+            height: 60px;
+            top: 70%;
+            left: 80%;
+            animation-delay: 2s;
+        }
+        
+        .particle:nth-child(3) {
+            width: 40px;
+            height: 40px;
+            top: 40%;
+            left: 90%;
+            animation-delay: 4s;
+        }
+        
+        .particle:nth-child(4) {
+            width: 100px;
+            height: 100px;
+            top: 60%;
+            left: 5%;
+            animation-delay: 6s;
+        }
+        
+        @keyframes float-particles {
+            0%, 100% {
+                transform: translate(0, 0) scale(1);
+                opacity: 0.3;
+            }
+            50% {
+                transform: translate(50px, -50px) scale(1.2);
+                opacity: 0.6;
+            }
+        }
+        
+        /* Main Content Overlay */
+        .content-overlay {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(100px);
+            z-index: 1;
+        }
+        
+        /* Top Header Bar */
+        .top-bar {
+            background: linear-gradient(90deg, rgba(255,255,255,0.2), rgba(255,255,255,0.1));
+            padding: 20px 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(20px);
+        }
+        
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .logo-circle {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 800;
+            font-size: 18px;
+            letter-spacing: 2px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(255, 107, 107, 0.4);
+            animation: pulse-glow 3s infinite ease-in-out;
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% {
+                box-shadow: 0 8px 32px rgba(255, 107, 107, 0.4);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 12px 48px rgba(255, 107, 107, 0.6);
+                transform: scale(1.05);
+            }
+        }
+        
+        .institute-header {
+            color: white;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .institute-header h1 {
+            font-size: 20px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            margin-bottom: 2px;
+        }
+        
+        .institute-header h2 {
+            font-size: 24px;
+            font-weight: 700;
+            font-style: italic;
+            font-family: 'Playfair Display', serif;
+            margin-bottom: 2px;
+        }
+        
+        .institute-header h3 {
+            font-size: 18px;
+            font-weight: 500;
+        }
+        
+        .since-badge {
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            color: #333;
+            padding: 10px 25px;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 13px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 24px rgba(255, 215, 0, 0.4);
+            animation: shine-badge 2s infinite ease-in-out;
+        }
+        
+        @keyframes shine-badge {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-3px); }
+        }
+        
+        /* Main Content Area */
+        .main-section {
+            padding: 60px 80px;
+            text-align: center;
+            height: calc(100% - 110px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* Topic Section with Animation */
+        .topic-area {
+            margin-bottom: 50px;
+            animation: fadeInUp 1s ease-out;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .topic-label {
+            background: linear-gradient(90deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1));
+            color: white;
+            display: inline-block;
+            padding: 12px 40px;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 5px;
+            margin-bottom: 25px;
+            border-radius: 30px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            text-transform: uppercase;
+        }
+        
+        .topic-title {
+            font-size: 72px;
+            font-weight: 800;
+            color: white;
+            text-shadow: 4px 4px 12px rgba(0, 0, 0, 0.4);
+            margin-bottom: 15px;
+            line-height: 1.1;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #ffffff, #f0f0f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 3s infinite linear;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .topic-subtitle {
+            font-size: 22px;
+            color: rgba(255, 255, 255, 0.9);
+            font-style: italic;
+            font-weight: 300;
+            text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Decorative Divider */
+        .divider-line {
+            width: 300px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+            margin: 40px auto;
+            border-radius: 2px;
+            position: relative;
+            animation: glow-line 2s infinite ease-in-out;
+        }
+        
+        @keyframes glow-line {
+            0%, 100% {
+                box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+            }
+        }
+        
+        .divider-line::before {
+            content: '◆';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 8px;
+            border-radius: 50%;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Presenter Card */
+        .presenter-area {
+            animation: fadeInUp 1s ease-out 0.3s both;
+        }
+        
+        .presented-label {
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+            letter-spacing: 3px;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .presenter-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.25), rgba(255,255,255,0.15));
+            backdrop-filter: blur(20px);
+            border-radius: 25px;
+            padding: 35px 50px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 35px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+            animation: float-card 4s infinite ease-in-out;
+        }
+        
+        @keyframes float-card {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+        
+        .presenter-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+        }
+        
+        .photo-frame {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 4px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            position: relative;
+        }
+        
+        .photo-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+        
+        .photo-frame:hover img {
+            transform: scale(1.1);
+        }
+        
+        .photo-frame::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, transparent, rgba(255,255,255,0.2));
+            pointer-events: none;
+        }
+        
+        .presenter-details {
+            text-align: left;
+        }
+        
+        .presenter-name {
+            font-size: 36px;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+            text-shadow: 3px 3px 10px rgba(0, 0, 0, 0.4);
+        }
+        
+        .student-id {
+            font-size: 18px;
+            color: white;
+            font-weight: 600;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.1));
+            padding: 10px 20px;
+            border-radius: 25px;
+            display: inline-block;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Decorative Corner Elements */
+        .corner-decoration {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            opacity: 0.15;
+            pointer-events: none;
+        }
+        
+        .corner-decoration.top-left {
+            top: 0;
+            left: 0;
+            background: linear-gradient(135deg, white, transparent);
+            clip-path: polygon(0 0, 100% 0, 0 100%);
+        }
+        
+        .corner-decoration.bottom-right {
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(135deg, transparent, white);
+            clip-path: polygon(100% 0, 100% 100%, 0 100%);
+        }
+        
+        /* Bottom Accent Bar */
+        .bottom-accent {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background: linear-gradient(90deg, #ff6b6b, #ffd700, #4ecdc4, #667eea);
+            background-size: 200% 100%;
+            animation: gradient-shift 5s linear infinite;
+        }
+        
+        @keyframes gradient-shift {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+        
+        @media print {
+            body {
+                background: white;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <!-- Animated Particles -->
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        
+        <!-- Content Overlay -->
+        <div class="content-overlay">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="logo-section">
+                    <div class="photo-frame">
+                            <img id="presenterPhoto" src="TIT COLLEGE.jpg" alt="Abhishek" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:white;font-size:48px;\'>👤</div>'">
+                        </div>
+                    <div class="institute-header">
+                        <h1>THE TECHNOLOGICAL</h1>
+                        <h2>Institute of Textile &</h2>
+                        <h3>Sciences</h3>
+                    </div>
+                </div>
+                <div class="since-badge">SINCE 1943</div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="main-section">
+                <!-- Topic Area -->
+                <div class="topic-area">
+                    <div class="topic-label">TOPIC</div>
+                    <div class="topic-title">DEFECT IN FABRIC</div>
+                    <div class="topic-subtitle">Comprehensive Analysis & Quality Control Solutions</div>
+                </div>
+                
+                <!-- Divider -->
+                <div class="divider-line"></div>
+                
+                <!-- Presenter Area -->
+                <div class="presenter-area">
+                    <div class="presented-label">Presented By</div>
+                    <div class="presenter-card">
+                        <div class="photo-frame">
+                            <img id="presenterPhoto" src="Abhishek Photo2.jpg" alt="Abhishek" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:white;font-size:48px;\'>👤</div>'">
+                        </div>
+                        <div class="presenter-details">
+                            <div class="presenter-name">ABHISHEK</div>
+                            <div class="student-id">Student ID: 22TT010</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Corner Decorations -->
+            <div class="corner-decoration top-left"></div>
+            <div class="corner-decoration bottom-right"></div>
+            
+            <!-- Bottom Accent -->
+            <div class="bottom-accent"></div>
+        </div>
+    </div>
+    
+    <script>
+        // Load the uploaded photo
+        async function loadPhoto() {
+            try {
+                const data = await window.fs.readFile('Abhishek Photo2.jpg');
+                const blob = new Blob([data], { type: 'image/jpeg' });
+                const url = URL.createObjectURL(blob);
+                document.getElementById('presenterPhoto').src = url;
+            } catch (error) {
+                console.log('Photo not found, using placeholder');
+            }
+        }
+        
+        // Load photo when page loads
+        if (window.fs && window.fs.readFile) {
+            loadPhoto();
+        }
+    </script>
+        </div>
+
+
+
+
+
+        <div class="slide active title-slide">
+            <h1>Fabric Defects</h1>
+            <p>Comprehensive Animated Guide to Causes & Remedies</p>
+            <div class="stats">
+                <p>📊 51 Common Textile Defects Explained</p>
+                <p>🎯 Professional Quality Control Reference</p>
+                <p>⚡ Interactive Presentation Mode</p>
+            </div>
+            <p style="font-size: 1em; margin-top: 40px; opacity: 0.8;">
+                Navigate: Arrow Keys • Space • Click • Voice • Auto-advance
+            </p>
+        </div>
+
+        <!-- Defect Slides -->
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>SECTION MARK</h1>
+                    <div class="defect-type">Weaving Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Visible lines or marks running across the width of fabric, typically appearing as distinct bands or streaks that differ in appearance from the rest of the fabric.</p>
+                        <ul>
+                            <li>Appears as horizontal bands</li>
+                            <li>May show color variations</li>
+                            <li>Creates uneven fabric appearance</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Loom stoppages during weaving</li>
+                            <li>Tension variations in warp yarns</li>
+                            <li>Different yarn lots with varying properties</li>
+                            <li>Inconsistent beat-up pressure</li>
+                            <li>Reed setting variations</li>
+                            <li>Temperature/humidity changes</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Maintain consistent loom settings</li>
+                            <li>Use uniform yarn lots</li>
+                            <li>Regular tension monitoring</li>
+                            <li>Proper conditioning of warp</li>
+                            <li>Minimize loom stoppages</li>
+                            <li>Train operators on consistent practices</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator minor">Minor Defect</div>
+                    <h1>WEFT CHANGE</h1>
+                    <div class="defect-type">Weaving Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Visible line or mark in the fabric where one weft yarn package was changed to another during weaving process.</p>
+                        <ul>
+                            <li>Appears as a horizontal line</li>
+                            <li>May show slight color variation</li>
+                            <li>Usually minor visual impact</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Different yarn lots used</li>
+                            <li>Slight color variations between packages</li>
+                            <li>Tension differences in new package</li>
+                            <li>Poor knotting at changeover</li>
+                            <li>Yarn count variations</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Use yarns from same dye lot</li>
+                            <li>Proper tension adjustment</li>
+                            <li>Skilled package changing</li>
+                            <li>Quality matching of yarn packages</li>
+                            <li>Minimize visible changeover points</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>SLOUGH OFF</h1>
+                    <div class="defect-type">Yarn/Weaving Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Loose fiber or yarn segments that separate from the main yarn structure, creating fuzzy or loose areas in the fabric.</p>
+                        <ul>
+                            <li>Appears as loose fibers</li>
+                            <li>Creates fuzzy texture</li>
+                            <li>Affects fabric hand feel</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Poor yarn quality</li>
+                            <li>Weak fiber-to-yarn bonding</li>
+                            <li>Excessive abrasion during weaving</li>
+                            <li>Incorrect yarn twist</li>
+                            <li>Poor sizing application</li>
+                            <li>Damaged yarn during handling</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Improve yarn quality control</li>
+                            <li>Proper sizing application</li>
+                            <li>Reduce mechanical abrasion</li>
+                            <li>Optimize yarn twist</li>
+                            <li>Better yarn handling practices</li>
+                            <li>Regular machine maintenance</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator critical">Critical Defect</div>
+                    <h1>WRONG END</h1>
+                    <div class="defect-type">Threading/Weaving Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Incorrect warp yarn threaded through wrong heddle or reed space, creating pattern distortion or structural weakness.</p>
+                        <ul>
+                            <li>Disrupts fabric pattern</li>
+                            <li>Creates structural irregularities</li>
+                            <li>Affects fabric integrity</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Drawing-in errors</li>
+                            <li>Incorrect threading sequence</li>
+                            <li>Worker carelessness</li>
+                            <li>Poor lighting during threading</li>
+                            <li>Complex pattern confusion</li>
+                            <li>Inadequate supervision</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Double-check threading pattern</li>
+                            <li>Improve worker training</li>
+                            <li>Better lighting for threading</li>
+                            <li>Use threading aids/guides</li>
+                            <li>Regular supervision during setup</li>
+                            <li>Pattern verification before weaving</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>REED MARK</h1>
+                    <div class="defect-type">Weaving Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Vertical lines or streaks in fabric caused by damaged, bent, or incorrectly spaced reed wires affecting yarn positioning.</p>
+                        <ul>
+                            <li>Appears as vertical streaks</li>
+                            <li>May cause yarn breakage</li>
+                            <li>Creates uneven fabric surface</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Bent or damaged reed wires</li>
+                            <li>Incorrect reed spacing</li>
+                            <li>Foreign matter in reed</li>
+                            <li>Uneven reed wire wear</li>
+                            <li>Poor reed maintenance</li>
+                            <li>Excessive beat-up force</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Regular reed inspection</li>
+                            <li>Replace damaged reeds</li>
+                            <li>Proper reed cleaning</li>
+                            <li>Correct beat-up adjustment</li>
+                            <li>Quality reed selection</li>
+                            <li>Preventive maintenance schedule</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>TEMPLE MARK</h1>
+                    <div class="defect-type">Weaving Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Marks or distortion along the fabric edges caused by temple (stretcher) pins or rings that keep fabric width constant during weaving.</p>
+                        <ul>
+                            <li>Edge distortion marks</li>
+                            <li>Puncture holes from pins</li>
+                            <li>Affects sellvedge quality</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Damaged temple pins/rings</li>
+                            <li>Excessive temple pressure</li>
+                            <li>Incorrect temple positioning</li>
+                            <li>Poor temple maintenance</li>
+                            <li>Wrong temple type for fabric</li>
+                            <li>Irregular fabric tension</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Regular temple inspection</li>
+                            <li>Proper temple adjustment</li>
+                            <li>Use appropriate temple type</li>
+                            <li>Maintain correct pressure</li>
+                            <li>Replace worn temples</li>
+                            <li>Regular cleaning and lubrication</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator minor">Minor Defect</div>
+                    <h1>TUCK IN</h1>
+                    <div class="defect-type">Weaving Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>End of weft yarn folded back into the fabric instead of being cut cleanly, creating a small loop or thick area.</p>
+                        <ul>
+                            <li>Small loops in fabric</li>
+                            <li>Thick spots at selvedge</li>
+                            <li>Minor visual irregularity</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Improper weft cutting</li>
+                            <li>Dull cutting blades</li>
+                            <li>Incorrect selvedge formation</li>
+                            <li>Poor yarn handling</li>
+                            <li>Faulty cutting mechanism</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Sharp cutting blades</li>
+                            <li>Proper cutting adjustment</li>
+                            <li>Regular blade maintenance</li>
+                            <li>Correct selvedge settings</li>
+                            <li>Operator training</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>BAD SELVEDGE</h1>
+                    <div class="defect-type">Weaving Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Poor quality fabric edges with uneven, loose, tight, or distorted selvedges affecting fabric handling and appearance.</p>
+                        <ul>
+                            <li>Uneven edge structure</li>
+                            <li>Loose or tight edges</li>
+                            <li>Edge distortion</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Incorrect temple settings</li>
+                            <li>Poor weft insertion</li>
+                            <li>Uneven warp tension</li>
+                            <li>Faulty selvedge forming system</li>
+                            <li>Wrong reed selection</li>
+                            <li>Improper beat-up</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Proper temple adjustment</li>
+                            <li>Correct warp tension</li>
+                            <li>Regular selvedge inspection</li>
+                            <li>Appropriate reed selection</li>
+                            <li>Optimize beat-up timing</li>
+                            <li>Maintain consistent settings</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>JALLA</h1>
+                    <div class="defect-type">Weaving Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Local term for thick, irregular areas in fabric caused by yarn doubling or multiple yarns weaving together where only one should be present.</p>
+                        <ul>
+                            <li>Thick irregular patches</li>
+                            <li>Multiple yarns together</li>
+                            <li>Structural abnormality</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Yarn doubling during feeding</li>
+                            <li>Multiple yarn ends together</li>
+                            <li>Faulty yarn feeding mechanism</li>
+                            <li>Poor yarn separation</li>
+                            <li>Incorrect yarn handling</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Proper yarn feeding control</li>
+                            <li>Regular yarn path inspection</li>
+                            <li>Maintain yarn separation</li>
+                            <li>Check feeding mechanisms</li>
+                            <li>Train operators on detection</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>JHIRI/PATTI</h1>
+                    <div class="defect-type">Weaving Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Longitudinal streaks or bands in fabric appearing as lines running parallel to warp direction, creating visual irregularities.</p>
+                        <ul>
+                            <li>Vertical streaks in fabric</li>
+                            <li>Parallel to warp direction</li>
+                            <li>Creates banded appearance</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Uneven warp tension</li>
+                            <li>Different yarn counts in warp</li>
+                            <li>Variation in yarn properties</li>
+                            <li>Poor warping practices</li>
+                            <li>Reed setting irregularities</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Uniform warp tension</li>
+                            <li>Use consistent yarn lots</li>
+                            <li>Proper warping techniques</li>
+                            <li>Regular tension monitoring</li>
+                            <li>Quality yarn selection</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator critical">Critical Defect</div>
+                    <h1>DESIGN CUT</h1>
+                    <div class="defect-type">Pattern/Weaving Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Interruption or break in the intended fabric pattern/design, creating incomplete or distorted motifs.</p>
+                        <ul>
+                            <li>Broken pattern elements</li>
+                            <li>Incomplete design motifs</li>
+                            <li>Pattern discontinuity</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Loom stoppage during pattern</li>
+                            <li>Incorrect pattern programming</li>
+                            <li>Mechanical failure in dobby/jacquard</li>
+                            <li>Power interruption</li>
+                            <li>Operator error in pattern change</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Minimize loom stoppages</li>
+                            <li>Verify pattern programming</li>
+                            <li>Regular machinery maintenance</li>
+                            <li>Power backup systems</li>
+                            <li>Operator training on patterns</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>CHIRA</h1>
+                    <div class="defect-type">Yarn/Weaving Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Local term for yarn splits or separations creating thin, weak areas in fabric where yarn has partially separated into its component parts.</p>
+                        <ul>
+                            <li>Yarn splitting/separation</li>
+                            <li>Thin weak areas</li>
+                            <li>Partial yarn breakdown</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Poor yarn quality</li>
+                            <li>Excessive abrasion</li>
+                            <li>Incorrect yarn twist</li>
+                            <li>Mechanical damage</li>
+                            <li>Poor sizing</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Improve yarn quality</li>
+                            <li>Reduce mechanical abrasion</li>
+                            <li>Optimize yarn twist</li>
+                            <li>Better yarn handling</li>
+                            <li>Proper sizing application</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>DOUBLE PICK</h1>
+                    <div class="defect-type">Weaving Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Two weft yarns inserted in the same shed instead of one, creating a thick line or band across the fabric width.</p>
+                        <ul>
+                            <li>Thick horizontal band</li>
+                            <li>Double weft thickness</li>
+                            <li>Visible fabric irregularity</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Faulty weft insertion system</li>
+                            <li>Multiple shuttle action</li>
+                            <li>Projectile/rapier malfunction</li>
+                            <li>Control system error</li>
+                            <li>Mechanical timing issues</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Check weft insertion timing</li>
+                            <li>Inspect control systems</li>
+                            <li>Regular maintenance of insertion system</li>
+                            <li>Calibrate detection systems</li>
+                            <li>Monitor weft feeding mechanism</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>WRONG PICK</h1>
+                    <div class="defect-type">Weaving Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Incorrect weft yarn used in pattern weaving, creating wrong color or yarn type in the design sequence.</p>
+                        <ul>
+                            <li>Wrong color in pattern</li>
+                            <li>Incorrect yarn type</li>
+                            <li>Pattern disruption</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Incorrect weft selection</li>
+                            <li>Pattern programming error</li>
+                            <li>Operator mistake</li>
+                            <li>Wrong yarn loading</li>
+                            <li>Control system malfunction</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Verify pattern program</li>
+                            <li>Proper yarn identification</li>
+                            <li>Operator training</li>
+                            <li>Regular system checks</li>
+                            <li>Quality control monitoring</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator minor">Minor Defect</div>
+                    <h1>FLUFF</h1>
+                    <div class="defect-type">Yarn/Surface Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Loose fibers or fiber debris on fabric surface creating a fuzzy appearance and affecting fabric smoothness.</p>
+                        <ul>
+                            <li>Fuzzy fabric surface</li>
+                            <li>Loose fiber debris</li>
+                            <li>Poor fabric hand feel</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Poor yarn quality</li>
+                            <li>Excessive friction during weaving</li>
+                            <li>Inadequate yarn preparation</li>
+                            <li>Poor sizing</li>
+                            <li>Environmental conditions</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Improve yarn quality</li>
+                            <li>Proper sizing application</li>
+                            <li>Reduce mechanical friction</li>
+                            <li>Control humidity levels</li>
+                            <li>Regular cleaning of machinery</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>OILY END</h1>
+                    <div class="defect-type">Yarn/Contamination Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Warp or weft yarn contaminated with oil or grease, creating dark streaks and affecting dyeing uniformity.</p>
+                        <ul>
+                            <li>Dark oily streaks</li>
+                            <li>Contaminated yarn appearance</li>
+                            <li>Dyeing irregularities</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Machine oil leakage</li>
+                            <li>Contaminated yarn packages</li>
+                            <li>Poor machine maintenance</li>
+                            <li>Oil from guides/rollers</li>
+                            <li>Handling with oily hands</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Regular machine maintenance</li>
+                            <li>Proper oil sealing</li>
+                            <li>Clean handling practices</li>
+                            <li>Inspect yarn packages</li>
+                            <li>Replace contaminated parts</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator critical">Critical Defect</div>
+                    <h1>LET OFF</h1>
+                    <div class="defect-type">Weaving/Tension Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Improper warp release during weaving causing loose, baggy areas or excessive tightness in fabric structure.</p>
+                        <ul>
+                            <li>Loose baggy fabric areas</li>
+                            <li>Uneven fabric tension</li>
+                            <li>Structural irregularities</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Faulty let-off mechanism</li>
+                            <li>Incorrect tension settings</li>
+                            <li>Mechanical wear in let-off system</li>
+                            <li>Control system malfunction</li>
+                            <li>Poor calibration</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Calibrate let-off system</li>
+                            <li>Regular maintenance</li>
+                            <li>Check tension controls</li>
+                            <li>Replace worn components</li>
+                            <li>Monitor system performance</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>LOOSE END/TIGHT END</h1>
+                    <div class="defect-type">Weaving/Tension Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Individual warp yarns with incorrect tension creating loose loops or overly tight lines in the fabric.</p>
+                        <ul>
+                            <li>Loose yarn loops</li>
+                            <li>Tight yarn lines</li>
+                            <li>Uneven fabric surface</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Uneven warp tension</li>
+                            <li>Damaged tensioning devices</li>
+                            <li>Yarn length variations</li>
+                            <li>Poor warping practices</li>
+                            <li>Mechanical adjustments needed</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Adjust individual yarn tension</li>
+                            <li>Check tensioning devices</li>
+                            <li>Proper warping techniques</li>
+                            <li>Regular tension monitoring</li>
+                            <li>Balance warp beam tension</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>WEFT CUT</h1>
+                    <div class="defect-type">Weaving Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Premature cutting or breaking of weft yarn during insertion, resulting in incomplete pick across fabric width.</p>
+                        <ul>
+                            <li>Incomplete weft insertion</li>
+                            <li>Missing yarn sections</li>
+                            <li>Fabric structural weakness</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Sharp edges on machinery</li>
+                            <li>Excessive weft tension</li>
+                            <li>Poor yarn quality</li>
+                            <li>Faulty cutting mechanism</li>
+                            <li>Incorrect machine settings</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Remove sharp edges</li>
+                            <li>Adjust weft tension</li>
+                            <li>Improve yarn quality</li>
+                            <li>Maintain cutting system</li>
+                            <li>Optimize machine settings</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator critical">Critical Defect</div>
+                    <h1>HOLE</h1>
+                    <div class="defect-type">Structural Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Complete absence of both warp and weft yarns creating an actual opening or hole in the fabric structure.</p>
+                        <ul>
+                            <li>Physical opening in fabric</li>
+                            <li>Complete yarn absence</li>
+                            <li>Structural failure</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Yarn breakage</li>
+                            <li>Mechanical damage</li>
+                            <li>Sharp objects contact</li>
+                            <li>Poor yarn quality</li>
+                            <li>Excessive tension</li>
+                            <li>Chemical degradation</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Immediate fabric inspection</li>
+                            <li>Remove sharp objects</li>
+                            <li>Control yarn tension</li>
+                            <li>Improve yarn quality</li>
+                            <li>Protect fabric during handling</li>
+                            <li>Regular maintenance</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>ABRASION</h1>
+                    <div class="defect-type">Surface/Mechanical Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Surface wear or damage from rubbing against machinery parts, creating rough, worn, or damaged fabric areas.</p>
+                        <ul>
+                            <li>Rough fabric surface</li>
+                            <li>Worn yarn appearance</li>
+                            <li>Surface damage marks</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Rough machinery surfaces</li>
+                            <li>Excessive friction</li>
+                            <li>Poor machine alignment</li>
+                            <li>Worn guides and rollers</li>
+                            <li>High fabric tension</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Polish rough surfaces</li>
+                            <li>Reduce friction points</li>
+                            <li>Proper machine alignment</li>
+                            <li>Replace worn parts</li>
+                            <li>Optimize fabric tension</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>DOUBLE END</h1>
+                    <div class="defect-type">Weaving Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Two warp yarns running together where only one should be present, creating thick vertical lines in fabric.</p>
+                        <ul>
+                            <li>Thick vertical lines</li>
+                            <li>Double yarn thickness</li>
+                            <li>Fabric irregularity</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Drawing-in errors</li>
+                            <li>Multiple yarns through one heddle</li>
+                            <li>Poor warping practices</li>
+                            <li>Yarn breakage repairs</li>
+                            <li>Threading mistakes</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Careful drawing-in process</li>
+                            <li>Single yarn per heddle</li>
+                            <li>Proper warping techniques</li>
+                            <li>Correct repair procedures</li>
+                            <li>Threading verification</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>EMERY MARK</h1>
+                    <div class="defect-type">Surface/Processing Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Scratches or marks on fabric surface caused by abrasive materials or rough surfaces during processing.</p>
+                        <ul>
+                            <li>Surface scratches</li>
+                            <li>Abrasive damage marks</li>
+                            <li>Rough surface appearance</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Rough roller surfaces</li>
+                            <li>Abrasive material contact</li>
+                            <li>Poor surface finishing</li>
+                            <li>Contaminated processing equipment</li>
+                            <li>Excessive processing pressure</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Polish processing equipment</li>
+                            <li>Remove abrasive materials</li>
+                            <li>Regular equipment cleaning</li>
+                            <li>Control processing pressure</li>
+                            <li>Smooth surface maintenance</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator minor">Minor Defect</div>
+                    <h1>EXTRA WEFT</h1>
+                    <div class="defect-type">Weaving Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Additional weft yarn inserted beyond the normal fabric width, creating irregular selvedge or fabric edge.</p>
+                        <ul>
+                            <li>Extra yarn at fabric edge</li>
+                            <li>Irregular selvedge</li>
+                            <li>Edge thickness variation</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Incorrect weft insertion length</li>
+                            <li>Faulty weft cutting</li>
+                            <li>Poor selvedge control</li>
+                            <li>Mechanical malfunction</li>
+                            <li>Improper fabric width setting</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Adjust weft insertion length</li>
+                            <li>Proper cutting mechanism</li>
+                            <li>Correct selvedge settings</li>
+                            <li>Regular system maintenance</li>
+                            <li>Monitor fabric width</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>FILAMENT RUPTURE</h1>
+                    <div class="defect-type">Yarn/Structural Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Breaking of individual filaments in synthetic yarns, creating weak spots and potential fabric failure points.</p>
+                        <ul>
+                            <li>Broken filament segments</li>
+                            <li>Weak yarn areas</li>
+                            <li>Potential fabric weakness</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Excessive mechanical stress</li>
+                            <li>Poor yarn quality</li>
+                            <li>Sharp edges on machinery</li>
+                            <li>Incorrect processing conditions</li>
+                            <li>Chemical degradation</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Reduce mechanical stress</li>
+                            <li>Improve yarn quality control</li>
+                            <li>Remove sharp machinery edges</li>
+                            <li>Optimize processing parameters</li>
+                            <li>Protect from chemical damage</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator critical">Critical Defect</div>
+                    <h1>WRONG PATTERN</h1>
+                    <div class="defect-type">Design/Weaving Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Incorrect weave pattern executed, resulting in fabric structure different from intended design specifications.</p>
+                        <ul>
+                            <li>Incorrect weave structure</li>
+                            <li>Design specification mismatch</li>
+                            <li>Pattern execution error</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Programming errors</li>
+                            <li>Wrong pattern card/program</li>
+                            <li>Mechanical setup errors</li>
+                            <li>Operator mistakes</li>
+                            <li>Equipment malfunction</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Verify pattern programming</li>
+                            <li>Double-check setup</li>
+                            <li>Operator training</li>
+                            <li>Pattern verification before production</li>
+                            <li>Regular equipment calibration</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator critical">Critical Defect</div>
+                    <h1>WRONG DENTING</h1>
+                    <div class="defect-type">Threading/Setup Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Incorrect number of warp ends drawn through reed spaces, affecting fabric structure and density.</p>
+                        <ul>
+                            <li>Incorrect yarn density</li>
+                            <li>Uneven fabric structure</li>
+                            <li>Pattern distortion</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Drawing-in errors</li>
+                            <li>Wrong reed selection</li>
+                            <li>Incorrect denting plan</li>
+                            <li>Operator mistakes</li>
+                            <li>Pattern misunderstanding</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Verify denting specifications</li>
+                            <li>Proper reed selection</li>
+                            <li>Careful drawing-in process</li>
+                            <li>Operator training</li>
+                            <li>Quality checks during setup</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator critical">Critical Defect</div>
+                    <h1>WRONG DRAWN</h1>
+                    <div class="defect-type">Threading/Setup Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Incorrect threading of warp yarns through heddles, creating wrong interlacement pattern and fabric structure.</p>
+                        <ul>
+                            <li>Wrong interlacement pattern</li>
+                            <li>Fabric structure errors</li>
+                            <li>Design distortion</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Drawing-in sequence errors</li>
+                            <li>Pattern misunderstanding</li>
+                            <li>Incorrect threading plan</li>
+                            <li>Operator carelessness</li>
+                            <li>Complex pattern confusion</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Verify threading pattern</li>
+                            <li>Use threading guides</li>
+                            <li>Careful sequence following</li>
+                            <li>Double-check complex patterns</li>
+                            <li>Operator training and supervision</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>POOR MENDING</h1>
+                    <div class="defect-type">Repair/Quality Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Inadequate repair of fabric defects or yarn breaks, leaving visible mends that affect fabric quality and appearance.</p>
+                        <ul>
+                            <li>Visible repair marks</li>
+                            <li>Poor repair quality</li>
+                            <li>Fabric appearance affected</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Inadequate repair skills</li>
+                            <li>Poor quality repair materials</li>
+                            <li>Insufficient time for repairs</li>
+                            <li>Lack of proper tools</li>
+                            <li>Inadequate training</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Train repair personnel</li>
+                            <li>Use quality repair materials</li>
+                            <li>Provide adequate repair time</li>
+                            <li>Proper repair tools</li>
+                            <li>Quality check after repairs</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>LOOSING</h1>
+                    <div class="defect-type">Yarn/Structural Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Loss of yarn twist or fiber cohesion, resulting in loose, weak yarn structure and poor fabric integrity.</p>
+                        <ul>
+                            <li>Loose yarn structure</li>
+                            <li>Loss of twist</li>
+                            <li>Weak fabric areas</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Excessive mechanical action</li>
+                            <li>Poor yarn quality</li>
+                            <li>Incorrect twist level</li>
+                            <li>Chemical degradation</li>
+                            <li>Over-processing</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Control mechanical stress</li>
+                            <li>Improve yarn quality</li>
+                            <li>Optimize twist levels</li>
+                            <li>Protect from chemicals</li>
+                            <li>Monitor processing conditions</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>SUZI MARK</h1>
+                    <div class="defect-type">Processing/Surface Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Marks or impressions left on fabric surface by processing equipment, creating visible lines or patterns.</p>
+                        <ul>
+                            <li>Surface impression marks</li>
+                            <li>Equipment pattern transfer</li>
+                            <li>Visible processing lines</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Excessive processing pressure</li>
+                            <li>Rough equipment surfaces</li>
+                            <li>Incorrect temperature settings</li>
+                            <li>Poor equipment condition</li>
+                            <li>Inadequate fabric protection</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Adjust processing pressure</li>
+                            <li>Polish equipment surfaces</li>
+                            <li>Optimize temperature control</li>
+                            <li>Regular equipment maintenance</li>
+                            <li>Use protective measures</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator minor">Minor Defect</div>
+                    <h1>FOLD MARK</h1>
+                    <div class="defect-type">Handling/Storage Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Creases or lines in fabric caused by folding during storage, handling, or processing operations.</p>
+                        <ul>
+                            <li>Visible crease lines</li>
+                            <li>Fold impression marks</li>
+                            <li>Fabric surface irregularities</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Improper fabric folding</li>
+                            <li>Excessive storage pressure</li>
+                            <li>Long-term folded storage</li>
+                            <li>Poor handling practices</li>
+                            <li>Inadequate fabric protection</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Proper folding techniques</li>
+                            <li>Roll storage when possible</li>
+                            <li>Reduce storage pressure</li>
+                            <li>Careful handling practices</li>
+                            <li>Use protective materials</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator critical">Critical Defect</div>
+                    <h1>WRONG QUALITY</h1>
+                    <div class="defect-type">Specification/Material Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Fabric produced with materials or specifications different from what was ordered or required.</p>
+                        <ul>
+                            <li>Incorrect material composition</li>
+                            <li>Wrong specifications</li>
+                            <li>Quality standard mismatch</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Wrong material selection</li>
+                            <li>Specification misunderstanding</li>
+                            <li>Communication errors</li>
+                            <li>Inadequate quality control</li>
+                            <li>Material substitution without approval</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Verify material specifications</li>
+                            <li>Clear communication protocols</li>
+                            <li>Approval for any changes</li>
+                            <li>Regular quality audits</li>
+                            <li>Material tracking systems</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>FLOAT</h1>
+                    <div class="defect-type">Weaving/Pattern Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Yarn passing over or under multiple yarns without proper interlacement, creating loose sections in fabric structure.</p>
+                        <ul>
+                            <li>Loose yarn sections</li>
+                            <li>Poor yarn interlacement</li>
+                            <li>Structural weakness</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Heddle malfunction</li>
+                            <li>Incorrect shedding</li>
+                            <li>Pattern programming errors</li>
+                            <li>Mechanical timing issues</li>
+                            <li>Yarn tension problems</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Check heddle operation</li>
+                            <li>Verify shedding sequence</li>
+                            <li>Correct pattern programming</li>
+                            <li>Adjust mechanical timing</li>
+                            <li>Balance yarn tensions</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>NT/RT MIX</h1>
+                    <div class="defect-type">Yarn/Material Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Mixing of different yarn types (Natural/Raw and Treated) in same fabric, creating inconsistent properties and appearance.</p>
+                        <ul>
+                            <li>Inconsistent yarn properties</li>
+                            <li>Variable fabric behavior</li>
+                            <li>Appearance irregularities</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Yarn identification errors</li>
+                            <li>Poor inventory management</li>
+                            <li>Mixing during handling</li>
+                            <li>Inadequate labeling</li>
+                            <li>Quality control failures</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Proper yarn identification</li>
+                            <li>Segregated storage systems</li>
+                            <li>Clear labeling protocols</li>
+                            <li>Regular quality checks</li>
+                            <li>Inventory management systems</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator minor">Minor Defect</div>
+                    <h1>TOPS</h1>
+                    <div class="defect-type">Surface/Yarn Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Small fiber bundles or yarn ends protruding from fabric surface, creating a fuzzy or rough texture.</p>
+                        <ul>
+                            <li>Protruding fiber bundles</li>
+                            <li>Surface roughness</li>
+                            <li>Poor fabric hand feel</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Poor yarn preparation</li>
+                            <li>Inadequate combing/carding</li>
+                            <li>Fiber length variations</li>
+                            <li>Mechanical damage during processing</li>
+                            <li>Poor quality control</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Improve yarn preparation</li>
+                            <li>Better combing/carding processes</li>
+                            <li>Control fiber length</li>
+                            <li>Reduce mechanical damage</li>
+                            <li>Enhanced quality monitoring</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>TIGHTNESS</h1>
+                    <div class="defect-type">Tension/Structural Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Excessive tightness in fabric structure causing distortion, puckering, or dimensional instability.</p>
+                        <ul>
+                            <li>Fabric distortion</li>
+                            <li>Puckering effects</li>
+                            <li>Dimensional problems</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Excessive yarn tension</li>
+                            <li>Over-tight weaving settings</li>
+                            <li>Poor yarn elasticity</li>
+                            <li>Incorrect fabric construction</li>
+                            <li>Processing strain</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Adjust yarn tensions</li>
+                            <li>Optimize weaving parameters</li>
+                            <li>Select appropriate yarns</li>
+                            <li>Review fabric construction</li>
+                            <li>Control processing conditions</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator minor">Minor Defect</div>
+                    <h1>STARTING MARK</h1>
+                    <div class="defect-type">Weaving/Processing Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Visible mark or irregularity at fabric beginning where weaving or processing operations started.</p>
+                        <ul>
+                            <li>Initial production marks</li>
+                            <li>Start-up irregularities</li>
+                            <li>Beginning fabric defects</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Initial setting instability</li>
+                            <li>Start-up tension variations</li>
+                            <li>Equipment warming effects</li>
+                            <li>Operator adjustment period</li>
+                            <li>Process stabilization time</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Allow proper warm-up time</li>
+                            <li>Pre-stabilize settings</li>
+                            <li>Discard initial production</li>
+                            <li>Gradual start-up procedures</li>
+                            <li>Regular equipment preparation</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>MENDING ABRASION</h1>
+                    <div class="defect-type">Repair/Surface Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Surface damage or roughness around areas where fabric repairs were made, affecting local fabric quality.</p>
+                        <ul>
+                            <li>Rough repair areas</li>
+                            <li>Surface damage near mends</li>
+                            <li>Localized abrasion marks</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Rough repair tools</li>
+                            <li>Excessive force during mending</li>
+                            <li>Poor repair technique</li>
+                            <li>Abrasive repair materials</li>
+                            <li>Inexperienced repair personnel</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Use smooth repair tools</li>
+                            <li>Gentle repair techniques</li>
+                            <li>Train repair personnel</li>
+                            <li>Quality repair materials</li>
+                            <li>Careful repair procedures</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>PATTA</h1>
+                    <div class="defect-type">Weaving/Structural Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Local term for thick bands or stripes in fabric caused by multiple yarns weaving together or yarn doubling.</p>
+                        <ul>
+                            <li>Thick fabric bands</li>
+                            <li>Visible stripe effects</li>
+                            <li>Irregular thickness areas</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Multiple yarn ends together</li>
+                            <li>Yarn doubling during weaving</li>
+                            <li>Threading errors</li>
+                            <li>Poor yarn separation</li>
+                            <li>Mechanical feeding problems</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Maintain proper yarn separation</li>
+                            <li>Check threading accuracy</li>
+                            <li>Regular yarn path inspection</li>
+                            <li>Control feeding mechanisms</li>
+                            <li>Train operators on detection</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator critical">Critical Defect</div>
+                    <h1>WARP BREAK</h1>
+                    <div class="defect-type">Yarn/Structural Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Complete fracture of warp yarn during weaving, creating missing warp ends and structural weakness in fabric.</p>
+                        <ul>
+                            <li>Missing warp yarns</li>
+                            <li>Structural weakness</li>
+                            <li>Fabric discontinuity</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Poor yarn quality</li>
+                            <li>Excessive tension</li>
+                            <li>Sharp machinery edges</li>
+                            <li>Yarn defects</li>
+                            <li>Mechanical abrasion</li>
+                            <li>Improper sizing</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Improve yarn quality</li>
+                            <li>Optimize tension settings</li>
+                            <li>Remove sharp edges</li>
+                            <li>Better sizing application</li>
+                            <li>Regular maintenance</li>
+                            <li>Quick repair procedures</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator minor">Minor Defect</div>
+                    <h1>BALL/KNOT</h1>
+                    <div class="defect-type">Yarn/Surface Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Small tangled balls of yarn or visible knots in fabric creating thick spots and surface irregularities.</p>
+                        <ul>
+                            <li>Yarn balls/tangles</li>
+                            <li>Visible knots</li>
+                            <li>Thick spot irregularities</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Poor yarn joining</li>
+                            <li>Yarn package defects</li>
+                            <li>Mechanical yarn tangling</li>
+                            <li>Inadequate yarn cleaning</li>
+                            <li>Poor winding practices</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Improve yarn joining techniques</li>
+                            <li>Quality yarn package inspection</li>
+                            <li>Prevent mechanical tangling</li>
+                            <li>Better yarn cleaning</li>
+                            <li>Proper winding procedures</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>LESHING</h1>
+                    <div class="defect-type">Weaving/Tension Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Local term for loose fabric areas caused by insufficient warp or weft tension during weaving process.</p>
+                        <ul>
+                            <li>Loose fabric sections</li>
+                            <li>Poor fabric tightness</li>
+                            <li>Structural looseness</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Insufficient warp tension</li>
+                            <li>Loose weft insertion</li>
+                            <li>Poor beat-up action</li>
+                            <li>Mechanical wear in tensioning</li>
+                            <li>Incorrect loom settings</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Adjust warp tension</li>
+                            <li>Optimize weft tension</li>
+                            <li>Improve beat-up settings</li>
+                            <li>Maintain tensioning systems</li>
+                            <li>Correct loom parameters</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>GREASE</h1>
+                    <div class="defect-type">Contamination Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Grease or oil contamination on fabric creating stains, dark spots, and affecting dyeing and finishing processes.</p>
+                        <ul>
+                            <li>Oil/grease stains</li>
+                            <li>Dark contaminated spots</li>
+                            <li>Processing difficulties</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Machinery oil leakage</li>
+                            <li>Poor lubrication practices</li>
+                            <li>Contaminated handling</li>
+                            <li>Inadequate machine cleaning</li>
+                            <li>Environmental contamination</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Fix oil leakages</li>
+                            <li>Proper lubrication procedures</li>
+                            <li>Clean handling practices</li>
+                            <li>Regular machine cleaning</li>
+                            <li>Environmental protection measures</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>LYCRA RUPTURE</h1>
+                    <div class="defect-type">Elastic/Yarn Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Breaking or rupture of elastic yarns (Lycra/Spandex) in fabric, causing loss of stretch properties and fabric distortion.</p>
+                        <ul>
+                            <li>Broken elastic yarns</li>
+                            <li>Loss of stretch property</li>
+                            <li>Fabric distortion</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Excessive stretch during processing</li>
+                            <li>Poor elastic yarn quality</li>
+                            <li>High temperature exposure</li>
+                            <li>Chemical degradation</li>
+                            <li>Mechanical damage</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Control stretch levels</li>
+                            <li>Use quality elastic yarns</li>
+                            <li>Temperature control</li>
+                            <li>Protect from chemicals</li>
+                            <li>Gentle handling practices</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>PICK OUT</h1>
+                    <div class="defect-type">Weaving Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Missing weft yarn across part or full width of fabric, creating gaps in fabric structure.</p>
+                        <ul>
+                            <li>Missing weft sections</li>
+                            <li>Fabric gaps</li>
+                            <li>Structural discontinuity</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Weft insertion failure</li>
+                            <li>Yarn breakage during insertion</li>
+                            <li>Mechanical malfunction</li>
+                            <li>Poor weft feeding</li>
+                            <li>Control system errors</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Check weft insertion system</li>
+                            <li>Improve yarn quality</li>
+                            <li>Regular mechanical maintenance</li>
+                            <li>Monitor feeding mechanisms</li>
+                            <li>Calibrate control systems</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>THICK/THIN FABRIC</h1>
+                    <div class="defect-type">Structural/Construction Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Variation in fabric thickness creating uneven surface with alternating thick and thin areas affecting appearance and performance.</p>
+                        <ul>
+                            <li>Uneven fabric thickness</li>
+                            <li>Variable surface texture</li>
+                            <li>Inconsistent fabric weight</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Yarn count variations</li>
+                            <li>Uneven yarn tension</li>
+                            <li>Variable beat-up pressure</li>
+                            <li>Inconsistent yarn quality</li>
+                            <li>Processing parameter changes</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Use uniform yarn counts</li>
+                            <li>Maintain consistent tensions</li>
+                            <li>Stabilize beat-up settings</li>
+                            <li>Quality yarn selection</li>
+                            <li>Monitor processing parameters</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="defect-slide">
+                <div class="defect-header">
+                    <div class="severity-indicator major">Major Defect</div>
+                    <h1>LOOM DAGI</h1>
+                    <div class="defect-type">Equipment/Contamination Defect</div>
+                </div>
+                <div class="content-grid">
+                    <div class="content-card description-card">
+                        <h3>Description</h3>
+                        <p>Local term for contamination or staining of fabric from loom-related sources, affecting fabric cleanliness and appearance.</p>
+                        <ul>
+                            <li>Fabric contamination</li>
+                            <li>Staining from loom</li>
+                            <li>Equipment-related marks</li>
+                        </ul>
+                    </div>
+                    <div class="content-card causes-card">
+                        <h3>Causes</h3>
+                        <ul>
+                            <li>Oil leakage from loom</li>
+                            <li>Dirty loom components</li>
+                            <li>Poor loom maintenance</li>
+                            <li>Contaminated parts</li>
+                            <li>Environmental dust/dirt</li>
+                        </ul>
+                    </div>
+                    <div class="content-card remedies-card">
+                        <h3>Remedies</h3>
+                        <ul>
+                            <li>Regular loom cleaning</li>
+                            <li>Fix oil leakages</li>
+                            <li>Maintain clean environment</li>
+                            <li>Replace contaminated components</li>
+                            <li>Preventive maintenance schedule</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+
+    <div class="navigation">
+        <button class="nav-btn" onclick="previousSlide()">← Previous</button>
+        <button class="nav-btn" onclick="toggleAutoAdvance()" id="autoBtn">🎬 Auto</button>
+        <button class="nav-btn" onclick="nextSlide()">Next →</button>
+    </div>
+
+    <script>
+        let currentSlideIndex = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        let autoAdvance = false;
+        let autoTimer = null;
+        let countdownTimer = null;
+        let timeRemaining = 10;
+        
+        document.getElementById('totalSlides').textContent = totalSlides;
+        
+        function updateProgressBar() {
+            const progress = (currentSlideIndex / (totalSlides - 1)) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+        
+        function showSlide(index) {
+            // Remove all classes
+            slides.forEach((slide, i) => {
+                slide.classList.remove('active', 'prev', 'next');
+                if (i < index) {
+                    slide.classList.add('prev');
+                } else if (i > index) {
+                    slide.classList.add('next');
+                }
+            });
+            
+            // Add active class to current slide
+            slides[index].classList.add('active');
+            
+            document.getElementById('currentSlide').textContent = index + 1;
+            updateProgressBar();
+            
+            // Remove existing highlights
+            document.querySelectorAll('.highlight').forEach(highlight => {
+                const parent = highlight.parentNode;
+                parent.replaceChild(document.createTextNode(highlight.textContent), highlight);
+                parent.normalize();
+            });
+            
+            // Animate slide content
+            const currentSlide = slides[index];
+            const defectSlide = currentSlide.querySelector('.defect-slide');
+            if (defectSlide) {
+                defectSlide.style.animation = 'none';
+                defectSlide.offsetHeight; // Trigger reflow
+                defectSlide.style.animation = 'slideContentIn 1s ease-out 0.3s forwards';
+            }
+        }
+        
+        function nextSlide() {
+            currentSlideIndex = (currentSlideIndex + 1) % totalSlides;
+            showSlide(currentSlideIndex);
+            resetAutoAdvance();
+        }
+        
+        function previousSlide() {
+            currentSlideIndex = (currentSlideIndex - 1 + totalSlides) % totalSlides;
+            showSlide(currentSlideIndex);
+            resetAutoAdvance();
+        }
+        
+        function toggleAutoAdvance() {
+            autoAdvance = !autoAdvance;
+            const autoBtn = document.getElementById('autoBtn');
+            const indicator = document.getElementById('autoAdvanceIndicator');
+            
+            if (autoAdvance) {
+                autoBtn.textContent = '⏸️ Pause';
+                autoBtn.style.background = '#e74c3c';
+                autoBtn.style.color = 'white';
+                startAutoAdvance();
+            } else {
+                autoBtn.textContent = '🎬 Auto';
+                autoBtn.style.background = '';
+                autoBtn.style.color = '';
+                stopAutoAdvance();
+                indicator.classList.remove('active');
+            }
+        }
+        
+        function startAutoAdvance() {
+            timeRemaining = 10;
+            const indicator = document.getElementById('autoAdvanceIndicator');
+            const countdown = document.getElementById('countdown');
+            
+            indicator.classList.add('active');
+            
+            countdownTimer = setInterval(() => {
+                timeRemaining--;
+                countdown.textContent = timeRemaining;
+                
+                if (timeRemaining <= 0) {
+                    nextSlide();
+                    timeRemaining = 10;
+                }
+            }, 1000);
+        }
+        
+        function stopAutoAdvance() {
+            if (countdownTimer) {
+                clearInterval(countdownTimer);
+                countdownTimer = null;
+            }
+        }
+        
+        function resetAutoAdvance() {
+            if (autoAdvance) {
+                stopAutoAdvance();
+                startAutoAdvance();
+            }
+        }
+        
+        function toggleFullscreen() {
+            const container = document.getElementById('presentationContainer');
+            
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().then(() => {
+                    document.body.classList.add('presentation-mode');
+                });
+            } else {
+                document.exitFullscreen().then(() => {
+                    document.body.classList.remove('presentation-mode');
+                });
+            }
+        }
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', function(event) {
+            switch(event.key) {
+                case 'ArrowRight':
+                case ' ':
+                    event.preventDefault();
+                    nextSlide();
+                    break;
+                case 'ArrowLeft':
+                    event.preventDefault();
+                    previousSlide();
+                    break;
+                case 'Home':
+                    event.preventDefault();
+                    currentSlideIndex = 0;
+                    showSlide(currentSlideIndex);
+                    resetAutoAdvance();
+                    break;
+                case 'End':
+                    event.preventDefault();
+                    currentSlideIndex = totalSlides - 1;
+                    showSlide(currentSlideIndex);
+                    resetAutoAdvance();
+                    break;
+                case 'f':
+                case 'F':
+                    event.preventDefault();
+                    toggleFullscreen();
+                    break;
+                case 'a':
+                case 'A':
+                    event.preventDefault();
+                    toggleAutoAdvance();
+                    break;
+                case 'Escape':
+                    if (autoAdvance) {
+                        toggleAutoAdvance();
+                    }
+                    break;
+            }
+        });
+        
+        // Mouse navigation
+        document.addEventListener('click', function(event) {
+            if (event.target.closest('.nav-btn') || 
+                event.target.closest('.search-input') || 
+                event.target.closest('.fullscreen-toggle')) {
+                return;
+            }
+            
+            const rect = window.innerWidth;
+            if (event.clientX > rect / 2) {
+                nextSlide();
+            } else {
+                previousSlide();
+            }
+        });
+
+        // Search functionality
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            if (searchTerm === '') return;
+            
+            // Find slides that match the search term
+            const matchingSlides = [];
+            slides.forEach((slide, index) => {
+                const slideText = slide.textContent.toLowerCase();
+                if (slideText.includes(searchTerm) && index > 0) { // Skip title slide
+                    matchingSlides.push(index);
+                }
+            });
+            
+            if (matchingSlides.length > 0) {
+                currentSlideIndex = matchingSlides[0];
+                showSlide(currentSlideIndex);
+                resetAutoAdvance();
+                
+                // Highlight search term in current slide
+                setTimeout(() => highlightSearchTerm(searchTerm), 500);
+            }
+        });
+        
+        function highlightSearchTerm(term) {
+            const currentSlide = slides[currentSlideIndex];
+            const textNodes = getTextNodes(currentSlide);
+            
+            textNodes.forEach(node => {
+                if (node.textContent.toLowerCase().includes(term)) {
+                    const parent = node.parentNode;
+                    const text = node.textContent;
+                    const regex = new RegExp(`(${term})`, 'gi');
+                    const highlightedText = text.replace(regex, '<span class="highlight">$1</span>');
+                    
+                    const wrapper = document.createElement('span');
+                    wrapper.innerHTML = highlightedText;
+                    parent.replaceChild(wrapper, node);
+                }
+            });
+        }
+        
+        function getTextNodes(element) {
+            const textNodes = [];
+            const walker = document.createTreeWalker(
+                element,
+                NodeFilter.SHOW_TEXT,
+                null,
+                false
+            );
+            
+            let node;
+            while (node = walker.nextNode()) {
+                if (node.textContent.trim() !== '') {
+                    textNodes.push(node);
+                }
+            }
+            return textNodes;
+        }
+
+        // Touch/swipe navigation for mobile
+        let touchStartX = 0;
+        let touchEndX = 0;
+        
+        document.addEventListener('touchstart', function(event) {
+            touchStartX = event.changedTouches[0].screenX;
+        });
+        
+        document.addEventListener('touchend', function(event) {
+            touchEndX = event.changedTouches[0].screenX;
+            handleSwipe();
+        });
+        
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            const swipeDistance = touchEndX - touchStartX;
+            
+            if (Math.abs(swipeDistance) > swipeThreshold) {
+                if (swipeDistance > 0) {
+                    previousSlide();
+                } else {
+                    nextSlide();
+                }
+            }
+        }
+
+        // Voice commands (experimental)
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+            
+            recognition.onresult = function(event) {
+                const command = event.results[event.results.length - 1][0].transcript.toLowerCase();
+                
+                if (command.includes('next') || command.includes('forward')) {
+                    nextSlide();
+                } else if (command.includes('previous') || command.includes('back')) {
+                    previousSlide();
+                } else if (command.includes('auto') || command.includes('play')) {
+                    if (!autoAdvance) toggleAutoAdvance();
+                } else if (command.includes('stop') || command.includes('pause')) {
+                    if (autoAdvance) toggleAutoAdvance();
+                } else if (command.includes('fullscreen')) {
+                    toggleFullscreen();
+                }
+            };
+            
+            // Start voice recognition when 'v' is pressed
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'v' || event.key === 'V') {
+                    event.preventDefault();
+                    recognition.start();
+                    setTimeout(() => recognition.stop(), 3000); // Stop after 3 seconds
+                }
+            });
+        }
+
+        // Initialize presentation
+        showSlide(0);
+        
+        // Add some demo slides data (in real version, all 51 defects would be here)
+        const defectsData = [
+            'SECTION MARK', 'WEFT CHANGE', 'SLOUGH OFF', 'WRONG END', 'REED MARK',
+            'TEMPLE MARK', 'TUCK IN', 'BAD SELVEDGE', 'JALLA', 'JHIRI/PATTI',
+            'DESIGN CUT', 'CHIRA', 'DOUBLE PICK', 'WRONG PICK', 'FLUFF',
+            'OILY END', 'LET OFF', 'LOOSE END/TIGHT END', 'WEFT CUT', 'HOLE',
+            'ABRASION', 'DOUBLE END', 'EMERY MARK', 'EXTRA WEFT', 'FILAMENT RUPTURE',
+            'WRONG PATTERN', 'WRONG DENTING', 'WRONG DRAWN', 'POOR MENDING', 'LOOSING',
+            'SUZI MARK', 'FOLD MARK', 'WRONG QUALITY', 'FLOAT', 'NT/RT MIX',
+            'TOPS', 'TIGHTNESS', 'STARTING MARK', 'MENDING ABRASION', 'PATTA',
+            'WARP BREAK', 'BALL/KNOT', 'LESHING', 'GREASE', 'LYCRA RUPTURE',
+            'PICK OUT', 'THICK/THIN FABRIC', 'LOOM DAGI'
+        ];
+        
+        // Update total slides count to match actual defects
+        document.getElementById('totalSlides').textContent = defectsData.length + 1; // +1 for title slide
+        
+        // Welcome animation
+        setTimeout(() => {
+            document.querySelector('.title-slide h1').style.transform = 'scale(1.05)';
+            setTimeout(() => {
+                document.querySelector('.title-slide h1').style.transform = 'scale(1)';
+            }, 500);
+        }, 2000);
+    </script>
+</body>
+</html>
